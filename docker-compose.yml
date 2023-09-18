@@ -1,0 +1,102 @@
+version: '3.9'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: installer
+    depends_on:
+      - redis
+      - migration
+      - mockserver
+    ports:
+      - '3000:3000'
+    environment:
+      - PORT=3000
+      - ENV=local
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASS=test
+      - SWAGGER_ENABLE=true
+      - TYPEORM_HOST=db
+      - TYPEORM_PORT=3306
+      - TYPEORM_USERNAME=almedia
+      - TYPEORM_PASSWORD=password
+      - TYPEORM_DATABASE=offers_db
+      - OFFER_PROVIDER_URL_OFFER1=http://mockserver:1080/offer1
+      - OFFER_PROVIDER_URL_OFFER2=http://mockserver:1080/offer2
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules # dont overwrite node_modules inside container (some packages need to be built for specific platform, so they might be broken if they are mounted, more info on this syntax - https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder/37898591#37898591)
+    command: ['yarn', 'start:dev']
+
+  migration:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: builder
+    environment:
+      - TYPEORM_HOST=db
+      - TYPEORM_PORT=3306
+      - TYPEORM_USERNAME=almedia
+      - TYPEORM_PASSWORD=password
+      - TYPEORM_DATABASE=offers_db
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ['yarn', 'migration:run']
+
+  redis:
+    image: redis/redis-stack
+    ports:
+      - '6379:6379'
+      - '8001:8001'
+    environment:
+      REDIS_ARGS: '--requirepass test'
+
+  db:
+    image: mariadb:11
+    ports:
+      - '3306:3306'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          '/usr/local/bin/healthcheck.sh',
+          '--su-mysql',
+          '--connect',
+          '--innodb_initialized',
+        ]
+      timeout: 5s
+      interval: 5s
+      retries: 10
+    environment:
+      MYSQL_USER: almedia
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: offers_db
+      MARIADB_ROOT_PASSWORD: root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mockserver:
+    image: mockserver/mockserver
+    ports:
+      - '4000:1080'
+
+  mockserver-expectations:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: installer
+    environment:
+      - MOCKSERVER_HOST=mockserver
+      - MOCKSERVER_PORT=1080
+    depends_on:
+      - mockserver
+    volumes:
+      - ./mockserver-expectations:/usr/src/app/mockserver-expectations
+      - /usr/src/app/node_modules
+    command: ['yarn', 'mockserver:mockserver-expectations']
+
+volumes:
+  mysql_data:
