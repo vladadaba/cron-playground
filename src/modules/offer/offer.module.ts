@@ -12,6 +12,7 @@ import { ProviderType } from './interfaces/provider-type.enum';
 import { JobProcessor, OffersJob } from './job.processor';
 import { UrlProviderConfig } from './parser/url-provider-config';
 import { OFFERS_JOB_OFFERS_JOB_QUEUE_NAME } from '../../config/constants';
+import { OfferController } from './offer.controller';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { OFFERS_JOB_OFFERS_JOB_QUEUE_NAME } from '../../config/constants';
     TypeOrmModule.forFeature([Offer]),
     HttpModule,
   ],
+  controllers: [OfferController],
   providers: [OfferService, ParserService, JobProcessor, UrlProviderConfig],
 })
 export class OfferModule implements OnModuleInit {

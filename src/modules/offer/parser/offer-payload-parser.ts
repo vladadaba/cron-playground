@@ -19,7 +19,7 @@ export interface ParsedOffers {
   offers: IOffer[];
   failed: {
     index: number;
-    error: string;
+    errors: { field: string; message: string }[];
   }[];
 }
 
@@ -68,7 +68,13 @@ export class OfferPayloadParser {
       if ('data' in offer) {
         parsed.push(offer.data);
       } else {
-        failed.push({ index: i, error: offer.error.message });
+        failed.push({
+          index: i,
+          errors: offer.error.errors.map(({ path, message }) => ({
+            field: path.join('.'),
+            message,
+          })),
+        });
       }
     }
 

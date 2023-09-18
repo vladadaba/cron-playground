@@ -1,10 +1,10 @@
 import { Processor, Process } from '@nestjs/bull';
 import { HttpService } from '@nestjs/axios';
 import { Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectEntityManager } from '@nestjs/typeorm';
 import { Job } from 'bull';
 import { firstValueFrom } from 'rxjs';
-import { Repository } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { ProviderType } from './interfaces/provider-type.enum';
 import { Offer } from './entities/offer.entity';
 import { ParserService } from './parser/parser.service';
@@ -20,8 +20,7 @@ export class JobProcessor {
   private readonly logger = new Logger(JobProcessor.name);
 
   constructor(
-    @InjectRepository(Offer)
-    private readonly offerRepository: Repository<Offer>,
+    @InjectEntityManager() private readonly em: EntityManager,
     private readonly httpService: HttpService,
     private readonly parserService: ParserService,
     private readonly urlConfig: UrlProviderConfig,
@@ -45,27 +44,17 @@ export class JobProcessor {
         await this.log('Some offers failed to parse', job, { failed });
       }
 
-      let progress = 0;
       await this.log(`Saving offers to database`, job, {
         offersCount: offers.length,
       });
-      for (const offer of offers) {
-        try {
-          // save one by one in case one of the parsed offers is not satisfying unique constraint (e.g. job being processed twice)
-          await this.offerRepository.save(offer);
-        } catch (err) {
-          // some constraint failed
-          await this.log(
-            'Saving offer to database failed',
-            job,
-            { offer },
-            err,
-          );
-        } finally {
-          progress++;
-          await job.progress(progress / offers.length);
-        }
-      }
+
+      await this.em.connection
+        .createQueryBuilder()
+        .insert()
+        .into(Offer)
+        .values(offers)
+        .orIgnore() // bulk insert, but ignore any that fail constraints (e.g. unique slug)
+        .execute(); // would be better to have reporting for failed ones, but saving one by one seems like an overkill
     } catch (err) {
       this.logger.error(
         { err, jobName: job.name, data: job.data },
@@ -75,18 +64,8 @@ export class JobProcessor {
     }
   }
 
-  async log(
-    message: string,
-    job: Job<OffersJob>,
-    data: unknown,
-    error?: Error,
-  ) {
-    if (error) {
-      this.logger.error({ error, data }, message);
-    } else {
-      this.logger.log({ data }, message);
-    }
-
+  async log(message: string, job: Job<OffersJob>, data: unknown) {
+    this.logger.log({ data }, message);
     await job.log(`${message}. ${JSON.stringify(data)}`);
   }
 }

@@ -13,9 +13,9 @@ Mockserver will generate between 1 and 10 valid, random offers each time request
 
 # URLs
 
-- Swagger `/docs`
-- Health checks `/health`
-- Job queue dashboard `/queues`
+- Swagger http://localhost:3000/docs - with offers endpoint for retreiving offers to see what is saved in the database
+- Health checks http://localhost:3000/health - database and bull queue health is checked
+- Job queue dashboard http://localhost:3000/queues
 
 # Migrations
 
@@ -39,12 +39,12 @@ yarn build && yarn migration:run
 
 # Decision log
 
-1. Use MySQL/MariaDB instead of Postgres (provided `offer.entity.ts` uses `tinyint` type which is not available on Postgres). `offer.entity.ts` will be used as provided without modifications.
-2. Use `bull` with Redis instead of `@nestjs/schedule` to support horizontal scaling of the app and have cron job per provider to make it more granular and faster
-3. Use `zod` for parsing payloads.
-4. Use `slugify` to make human readable slugs (better SEO aswell if they would be used for URLs).
-5. Dockerize the app and add `docker-compose.yml` to make everything easier to start locally.
-6. Implement requests using over-the-wire mocks (mockserver), so that same build artifact can be used in production instead of having forks in the code for different environments.
-7. Add structured logging using `pino`
-8. Add health checks using `terminus`
-9. Add offers REST API for displaying parsed offers. Add ability to filter by provider.
+1. Use `bull` with Redis instead of `@nestjs/schedule` to support horizontal scaling of the app and have cron job per provider to make it more granular and faster. Per provider cron job is executed every X minutes where X is number of providers (every minute, job for different provider is executed) to load level writes to the database.
+2. Use `zod` for parsing payloads
+3. Use `slugify` to make human readable slugs (better SEO aswell if they would be used for URLs)
+4. Dockerize the app and add `docker-compose.yml` to make everything easier to start locally
+5. Implement requests using over-the-wire mocks (mockserver), so that same build artifact can be used in production instead of having forks in the code for different environments
+6. Add structured logging using `pino`
+7. Add health checks using `terminus`
+8. Add offers REST API for displaying parsed offers
+9. Add tests for parser to test different scenarios
