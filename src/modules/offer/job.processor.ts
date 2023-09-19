@@ -44,17 +44,32 @@ export class JobProcessor {
         await this.log('Some offers failed to parse', job, { failed });
       }
 
+      if (offers.length === 0) {
+        return;
+      }
+
       await this.log(`Saving offers to database`, job, {
         offersCount: offers.length,
       });
 
-      await this.em.connection
+      const {
+        raw: { affectedRows },
+      }: { raw: { affectedRows: number } } = await this.em.connection
         .createQueryBuilder()
         .insert()
         .into(Offer)
         .values(offers)
-        .orIgnore() // bulk insert, but ignore any that fail constraints (e.g. unique slug)
-        .execute(); // would be better to have reporting for failed ones, but saving one by one seems like an overkill
+        .orIgnore()
+        .updateEntity(false)
+        .execute();
+
+      const failedToSave = offers.length - affectedRows;
+      if (failedToSave > 0) {
+        // TODO: better reporting, which ones failed to save?
+        this.log('Some offers failed to save to database', job, {
+          failedCount: failedToSave,
+        });
+      }
     } catch (err) {
       this.logger.error(
         { err, jobName: job.name, data: job.data },

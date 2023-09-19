@@ -39,7 +39,7 @@ describe('ParserService tests', () => {
         expect(offer.requirements).toBe(
           'Play and reach level 23 within 14 days.',
         );
-        expect(offer.slug).toBe('offer1-MyGym-iOS');
+        expect(offer.slug).toBe('offer1-1111-MyGym-iOS');
         expect(offer.thumbnail).toBe('https://some.url');
       });
     });
@@ -151,7 +151,7 @@ describe('ParserService tests', () => {
         expect(offer.requirements).toBe(
           'Register with VALID personal information, Make a minimum deposit of $50,Redeem your points! *New Users Only!',
         );
-        expect(offer.slug).toBe('offer2-Sofi');
+        expect(offer.slug).toBe('offer2-15828-Sofi');
         expect(offer.thumbnail).toBe('https://some.url');
       });
     });

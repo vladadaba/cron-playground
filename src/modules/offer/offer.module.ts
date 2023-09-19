@@ -53,7 +53,7 @@ export class OfferModule implements OnModuleInit {
           repeat: {
             // run every minute, but cycle through providers
             // each provider is updated every X minutes where X is number of providers
-            cron: `${i + 1}/${providers.length} * * * *`,
+            cron: `${i}/${providers.length} * * * *`,
           },
           removeOnComplete: 5,
         },

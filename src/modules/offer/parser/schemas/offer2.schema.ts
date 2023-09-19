@@ -57,7 +57,7 @@ const offerSchema = z
     }),
   );
 
-export default {
+export const schema = {
   parseResponse: responseSchema.safeParse,
   getOffersFromResponse,
   parseOffer: offerSchema.safeParse,
